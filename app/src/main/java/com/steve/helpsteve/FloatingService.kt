@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.IBinder
-import android.provider.Settings
 import android.view.*
 import android.widget.*
 import java.text.SimpleDateFormat
@@ -16,7 +15,7 @@ class FloatingService : Service() {
 
     private lateinit var wm: WindowManager
     private var bubble: TextView? = null
-    private var panel: LinearLayout? = null
+    private var panel: View? = null
     private var historyText: TextView? = null
 
     private val settings by lazy {
@@ -27,6 +26,28 @@ class FloatingService : Service() {
     private var responseMode = "Suggestions"
     private var language = "Français"
     private var selectedApp = "WhatsApp"
+
+    private var contactPersonality = "Amical"
+    private var contactMode = "Suggestions"
+    private var contactLanguage = "Français"
+
+    private lateinit var contactName: EditText
+    private lateinit var contactAppSpinner: Spinner
+    private lateinit var contactPersonalitySpinner: Spinner
+    private lateinit var contactModeSpinner: Spinner
+    private lateinit var contactLanguageSpinner: Spinner
+
+    private val apps = arrayOf(
+        "WhatsApp",
+        "WhatsApp Business",
+        "Messenger",
+        "Telegram",
+        "Gmail"
+    )
+
+    private val personalities = arrayOf("Amical", "Amoureux", "Drague")
+    private val modes = arrayOf("Suggestions", "Automatique")
+    private val languages = arrayOf("Français", "English", "Español", "中文", "日本語")
 
     override fun onCreate() {
         super.onCreate()
@@ -103,17 +124,12 @@ class FloatingService : Service() {
             })
         }
 
-        fun saveSetting(key: String, value: String) {
-            settings.edit().putString(key, value).apply()
-        }
-
-        fun selector(
+        fun makeSpinner(
             title: String,
             options: Array<String>,
             selected: String,
-            key: String,
             callback: (String) -> Unit
-        ) {
+        ): Spinner {
             label(title)
 
             val spinner = Spinner(this)
@@ -135,72 +151,201 @@ class FloatingService : Service() {
                         position: Int,
                         id: Long
                     ) {
-                        val value = options[position]
-                        saveSetting(key, value)
-                        callback(value)
+                        callback(options[position])
                     }
                 }
 
             root.addView(spinner)
+            return spinner
+        }
+
+        fun saveGeneralSetting(key: String, value: String) {
+            settings.edit().putString(key, value).apply()
         }
 
         label("✦ HELP-STEVE AI")
-        label("Paramètres de l'assistant")
+        label("PARAMÈTRES GÉNÉRAUX")
 
-        selector(
-            "Application",
-            arrayOf(
-                "WhatsApp",
-                "WhatsApp Business",
-                "Messenger",
-                "Telegram",
-                "Gmail"
-            ),
-            selectedApp,
-            "selectedApp"
-        ) { selectedApp = it }
+        makeSpinner("Application", apps, selectedApp) {
+            selectedApp = it
+            saveGeneralSetting("selectedApp", it)
+        }
 
-        selector(
-            "Personnalité",
-            arrayOf("Amical", "Amoureux", "Drague"),
-            personality,
-            "personality"
-        ) { personality = it }
+        makeSpinner("Personnalité générale", personalities, personality) {
+            personality = it
+            saveGeneralSetting("personality", it)
+        }
 
-        selector(
-            "Mode de réponse",
-            arrayOf("Suggestions", "Automatique"),
-            responseMode,
-            "responseMode"
-        ) { responseMode = it }
+        makeSpinner("Mode général", modes, responseMode) {
+            responseMode = it
+            saveGeneralSetting("responseMode", it)
+        }
 
-        selector(
-            "Langue",
-            arrayOf("Français", "English", "Español", "中文", "日本語"),
-            language,
-            "language"
-        ) { language = it }
+        makeSpinner("Langue générale", languages, language) {
+            language = it
+            saveGeneralSetting("language", it)
+        }
 
-        label("Historique des notifications")
+        label("──────────────")
+        label("CONTACTS PERSONNALISÉS")
+
+        label("Nom du contact")
+
+        contactName = EditText(this).apply {
+            hint = "Exemple : Alice"
+            textSize = 15f
+            setSingleLine(true)
+            setTextColor(0xFFFFFFFF.toInt())
+            setHintTextColor(0xFFAAAAAA.toInt())
+        }
+        root.addView(contactName)
+
+        contactAppSpinner = makeSpinner(
+            "Application du contact",
+            apps,
+            selectedApp
+        ) { }
+
+        contactPersonalitySpinner = makeSpinner(
+            "Personnalité du contact",
+            personalities,
+            contactPersonality
+        ) {
+            contactPersonality = it
+        }
+
+        contactModeSpinner = makeSpinner(
+            "Mode de réponse du contact",
+            modes,
+            contactMode
+        ) {
+            contactMode = it
+        }
+
+        contactLanguageSpinner = makeSpinner(
+            "Langue du contact",
+            languages,
+            contactLanguage
+        ) {
+            contactLanguage = it
+        }
+
+        root.addView(Button(this).apply {
+            text = "ENREGISTRER LES RÉGLAGES DU CONTACT"
+            setOnClickListener {
+                val name = contactName.text.toString().trim()
+
+                if (name.isBlank()) {
+                    Toast.makeText(
+                        this@FloatingService,
+                        "Entre d'abord le nom du contact",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
+                ContactSettingsStore.save(
+                    applicationContext,
+                    apps[contactAppSpinner.selectedItemPosition],
+                    name,
+                    ContactSettings(
+                        personality = contactPersonality,
+                        responseMode = contactMode,
+                        language = contactLanguage
+                    )
+                )
+
+                Toast.makeText(
+                    this@FloatingService,
+                    "Réglages de $name enregistrés",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
+
+        root.addView(Button(this).apply {
+            text = "CHARGER LES RÉGLAGES DU CONTACT"
+            setOnClickListener {
+                val name = contactName.text.toString().trim()
+
+                if (name.isBlank()) {
+                    Toast.makeText(
+                        this@FloatingService,
+                        "Entre le nom du contact",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
+                val app = apps[contactAppSpinner.selectedItemPosition]
+
+                val saved = ContactSettingsStore.get(
+                    applicationContext,
+                    app,
+                    name
+                )
+
+                contactPersonality = saved.personality
+                contactMode = saved.responseMode
+                contactLanguage = saved.language
+
+                contactPersonalitySpinner.setSelection(
+                    personalities.indexOf(contactPersonality).coerceAtLeast(0)
+                )
+                contactModeSpinner.setSelection(
+                    modes.indexOf(contactMode).coerceAtLeast(0)
+                )
+                contactLanguageSpinner.setSelection(
+                    languages.indexOf(contactLanguage).coerceAtLeast(0)
+                )
+
+                Toast.makeText(
+                    this@FloatingService,
+                    "Réglages de $name chargés",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
+
+        root.addView(Button(this).apply {
+            text = "SUPPRIMER LES RÉGLAGES DU CONTACT"
+            setOnClickListener {
+                val name = contactName.text.toString().trim()
+
+                if (name.isBlank()) {
+                    Toast.makeText(
+                        this@FloatingService,
+                        "Entre le nom du contact",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
+                ContactSettingsStore.delete(
+                    applicationContext,
+                    apps[contactAppSpinner.selectedItemPosition],
+                    name
+                )
+
+                Toast.makeText(
+                    this@FloatingService,
+                    "Réglages de $name supprimés",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
+
+        label("──────────────")
+        label("HISTORIQUE DES NOTIFICATIONS")
 
         historyText = TextView(this).apply {
             textSize = 13f
             setTextColor(0xFFFFFFFF.toInt())
             setPadding(8, 8, 8, 8)
-            text = "Chargement de l'historique..."
+            text = "Chargement..."
         }
 
-        val scroll = ScrollView(this).apply {
-            addView(historyText)
-        }
-
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                180
-            )
-        )
+        root.addView(historyText)
 
         root.addView(Button(this).apply {
             text = "ACTUALISER L'HISTORIQUE"
@@ -212,6 +357,7 @@ class FloatingService : Service() {
             setOnClickListener {
                 MessageStore.clear(applicationContext)
                 refreshHistory()
+
                 Toast.makeText(
                     this@FloatingService,
                     "Historique effacé",
@@ -227,10 +373,15 @@ class FloatingService : Service() {
             setOnClickListener { closePanel() }
         })
 
-        panel = root
+        val scroll = ScrollView(this).apply {
+            setPadding(8, 8, 8, 8)
+            addView(root)
+        }
+
+        panel = scroll
 
         wm.addView(
-            root,
+            scroll,
             params(340, 650).apply {
                 gravity = Gravity.CENTER
                 flags = flags and
@@ -273,6 +424,7 @@ class FloatingService : Service() {
         panel?.let {
             if (it.isAttachedToWindow) wm.removeView(it)
         }
+
         panel = null
         historyText = null
     }
