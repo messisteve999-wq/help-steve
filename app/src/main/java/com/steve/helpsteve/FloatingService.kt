@@ -5,14 +5,23 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.IBinder
+import android.provider.Settings
 import android.view.*
 import android.widget.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class FloatingService : Service() {
 
     private lateinit var wm: WindowManager
     private var bubble: TextView? = null
     private var panel: LinearLayout? = null
+    private var historyText: TextView? = null
+
+    private val settings by lazy {
+        getSharedPreferences("help_steve_settings", MODE_PRIVATE)
+    }
 
     private var personality = "Amical"
     private var responseMode = "Suggestions"
@@ -21,7 +30,14 @@ class FloatingService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
+
+        personality = settings.getString("personality", "Amical") ?: "Amical"
+        responseMode = settings.getString("responseMode", "Suggestions") ?: "Suggestions"
+        language = settings.getString("language", "Français") ?: "Français"
+        selectedApp = settings.getString("selectedApp", "WhatsApp") ?: "WhatsApp"
+
         createBubble()
     }
 
@@ -31,7 +47,8 @@ class FloatingService : Service() {
             height,
             if (android.os.Build.VERSION.SDK_INT >= 26)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else WindowManager.LayoutParams.TYPE_PHONE,
+            else
+                WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
@@ -53,8 +70,7 @@ class FloatingService : Service() {
             }
 
             setOnClickListener {
-                if (panel == null) openPanel()
-                else closePanel()
+                if (panel == null) openPanel() else closePanel()
             }
         }
 
@@ -87,66 +103,127 @@ class FloatingService : Service() {
             })
         }
 
+        fun saveSetting(key: String, value: String) {
+            settings.edit().putString(key, value).apply()
+        }
+
         fun selector(
             title: String,
             options: Array<String>,
             selected: String,
+            key: String,
             callback: (String) -> Unit
         ) {
             label(title)
+
             val spinner = Spinner(this)
             spinner.adapter = ArrayAdapter(
                 this,
                 android.R.layout.simple_spinner_dropdown_item,
                 options
             )
+
             spinner.setSelection(options.indexOf(selected).coerceAtLeast(0))
+
             spinner.onItemSelectedListener =
-                object : android.widget.AdapterView.OnItemSelectedListener {
-                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                object : AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: AdapterView<*>?) {}
+
                     override fun onItemSelected(
-                        parent: android.widget.AdapterView<*>?,
-                        view: android.view.View?,
+                        parent: AdapterView<*>?,
+                        view: View?,
                         position: Int,
                         id: Long
                     ) {
-                        callback(options[position])
+                        val value = options[position]
+                        saveSetting(key, value)
+                        callback(value)
                     }
                 }
+
             root.addView(spinner)
         }
 
         label("✦ HELP-STEVE AI")
-        label("Messagerie : $selectedApp")
+        label("Paramètres de l'assistant")
 
         selector(
             "Application",
-            arrayOf("WhatsApp", "Messenger", "Telegram", "Gmail"),
-            selectedApp
+            arrayOf(
+                "WhatsApp",
+                "WhatsApp Business",
+                "Messenger",
+                "Telegram",
+                "Gmail"
+            ),
+            selectedApp,
+            "selectedApp"
         ) { selectedApp = it }
 
         selector(
             "Personnalité",
             arrayOf("Amical", "Amoureux", "Drague"),
-            personality
+            personality,
+            "personality"
         ) { personality = it }
 
         selector(
             "Mode de réponse",
             arrayOf("Suggestions", "Automatique"),
-            responseMode
+            responseMode,
+            "responseMode"
         ) { responseMode = it }
 
         selector(
             "Langue",
             arrayOf("Français", "English", "Español", "中文", "日本語"),
-            language
+            language,
+            "language"
         ) { language = it }
 
-        label("Profil IA : Steve • Biologie • 28 ans • Yaoundé")
+        label("Historique des notifications")
+
+        historyText = TextView(this).apply {
+            textSize = 13f
+            setTextColor(0xFFFFFFFF.toInt())
+            setPadding(8, 8, 8, 8)
+            text = "Chargement de l'historique..."
+        }
+
+        val scroll = ScrollView(this).apply {
+            addView(historyText)
+        }
+
+        root.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                180
+            )
+        )
 
         root.addView(Button(this).apply {
-            text = "Fermer la fenêtre"
+            text = "ACTUALISER L'HISTORIQUE"
+            setOnClickListener { refreshHistory() }
+        })
+
+        root.addView(Button(this).apply {
+            text = "EFFACER L'HISTORIQUE"
+            setOnClickListener {
+                MessageStore.clear(applicationContext)
+                refreshHistory()
+                Toast.makeText(
+                    this@FloatingService,
+                    "Historique effacé",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
+
+        label("Profil IA : Steve • 28 ans • Yaoundé")
+
+        root.addView(Button(this).apply {
+            text = "FERMER"
             setOnClickListener { closePanel() }
         })
 
@@ -156,21 +233,57 @@ class FloatingService : Service() {
             root,
             params(340, 650).apply {
                 gravity = Gravity.CENTER
-                flags = flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+                flags = flags and
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
             }
         )
+
+        refreshHistory()
+    }
+
+    private fun refreshHistory() {
+        val messages = MessageStore.getAll(applicationContext)
+
+        val content = if (messages.isEmpty()) {
+            "Aucun message enregistré pour le moment."
+        } else {
+            messages.joinToString("\n\n") { item ->
+                val appName = when (item.packageName) {
+                    "com.whatsapp" -> "WhatsApp"
+                    "com.whatsapp.w4b" -> "WhatsApp Business"
+                    "com.facebook.orca" -> "Messenger"
+                    "org.telegram.messenger" -> "Telegram"
+                    "com.google.android.gm" -> "Gmail"
+                    else -> item.packageName
+                }
+
+                val date = SimpleDateFormat(
+                    "dd/MM HH:mm",
+                    Locale.getDefault()
+                ).format(Date(item.timestamp))
+
+                "[$appName] $date\n${item.title}\n${item.message}"
+            }
+        }
+
+        historyText?.text = content
     }
 
     private fun closePanel() {
         panel?.let {
-            wm.removeView(it)
+            if (it.isAttachedToWindow) wm.removeView(it)
         }
         panel = null
+        historyText = null
     }
 
     override fun onDestroy() {
         closePanel()
-        bubble?.let { wm.removeView(it) }
+
+        bubble?.let {
+            if (it.isAttachedToWindow) wm.removeView(it)
+        }
+
         bubble = null
         super.onDestroy()
     }
