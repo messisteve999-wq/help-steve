@@ -19,7 +19,7 @@ import java.util.Locale
 class FloatingService : Service() {
 
     private lateinit var wm: WindowManager
-    private var bubble: TextView? = null
+    private var bubble: ImageView? = null
     private var panel: View? = null
     private var historyText: TextView? = null
 
@@ -114,19 +114,11 @@ class FloatingService : Service() {
     }
 
     private fun createBubble() {
-        bubble = TextView(this).apply {
-            text = "✦"
-            textSize = 30f
-            gravity = Gravity.CENTER
-            setTextColor(0xFFFFFFFF.toInt())
-
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                colors = intArrayOf(
-                    0xFF6748FF.toInt(),
-                    0xFF00D9FF.toInt()
-                )
-            }
+        bubble = ImageView(this).apply {
+            setImageResource(R.drawable.help_steve_floating_icon)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = "Bulle flottante HELP-STEVE"
+            background = null
 
             setOnClickListener {
                 if (panel == null) openPanel() else closePanel()
