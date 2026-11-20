@@ -1,7 +1,12 @@
 package com.steve.helpsteve
 
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.IBinder
@@ -17,6 +22,35 @@ class FloatingService : Service() {
     private var bubble: TextView? = null
     private var panel: View? = null
     private var historyText: TextView? = null
+
+    private var suggestionOverlay: View? = null
+    private var suggestionText: TextView? = null
+    private var suggestionStatus: TextView? = null
+    private var changeSuggestionButton: Button? = null
+    private var currentContact = ""
+    private var currentPackage = ""
+    private var currentMessage = ""
+    private var currentPersonality = "Amical"
+    private var currentLanguage = "Français"
+    private var suggestionRequestNumber = 0
+
+    private val suggestionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != ACTION_SHOW_SUGGESTION) return
+            val contact = intent.getStringExtra(EXTRA_CONTACT).orEmpty()
+            val message = intent.getStringExtra(EXTRA_MESSAGE).orEmpty()
+            val suggestion = intent.getStringExtra(EXTRA_SUGGESTION).orEmpty()
+            if (suggestion.isBlank()) return
+
+            currentContact = contact
+            currentPackage = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
+            currentMessage = message
+            currentPersonality = intent.getStringExtra(EXTRA_PERSONALITY) ?: "Amical"
+            currentLanguage = intent.getStringExtra(EXTRA_LANGUAGE) ?: "Français"
+            suggestionRequestNumber++
+            showSuggestionOverlay(suggestion)
+        }
+    }
 
     private val settings by lazy {
         getSharedPreferences("help_steve_settings", MODE_PRIVATE)
@@ -53,6 +87,10 @@ class FloatingService : Service() {
         super.onCreate()
 
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
+        registerReceiver(
+            suggestionReceiver,
+            IntentFilter(ACTION_SHOW_SUGGESTION)
+        )
 
         personality = settings.getString("personality", "Amical") ?: "Amical"
         responseMode = settings.getString("responseMode", "Suggestions") ?: "Suggestions"
@@ -392,6 +430,154 @@ class FloatingService : Service() {
         refreshHistory()
     }
 
+
+    private fun showSuggestionOverlay(initialSuggestion: String) {
+        closeSuggestionOverlay()
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(18, 18, 18, 18)
+            background = GradientDrawable().apply {
+                setColor(0xFF101A30.toInt())
+                cornerRadius = 28f
+                setStroke(2, 0xFF00D9FF.toInt())
+            }
+        }
+
+        root.addView(TextView(this).apply {
+            text = "✦ HELP-STEVE • Suggestion"
+            textSize = 18f
+            setTextColor(0xFFFFFFFF.toInt())
+            setPadding(0, 0, 0, 8)
+        })
+
+        root.addView(TextView(this).apply {
+            text = "À ${currentContact.ifBlank { "votre contact" }}"
+            textSize = 14f
+            setTextColor(0xFF9EDFFF.toInt())
+            setPadding(0, 0, 0, 8)
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Message reçu :\n$currentMessage"
+            textSize = 13f
+            setTextColor(0xFFCCCCCC.toInt())
+            setPadding(0, 0, 0, 12)
+        })
+
+        suggestionText = TextView(this).apply {
+            text = initialSuggestion
+            textSize = 16f
+            setTextColor(0xFFFFFFFF.toInt())
+            setPadding(12, 14, 12, 14)
+            background = GradientDrawable().apply {
+                setColor(0xFF202D49.toInt())
+                cornerRadius = 16f
+            }
+        }
+        root.addView(suggestionText)
+
+        suggestionStatus = TextView(this).apply {
+            text = "Suggestion prête"
+            textSize = 12f
+            setTextColor(0xFF9EDFFF.toInt())
+            setPadding(2, 8, 2, 8)
+        }
+        root.addView(suggestionStatus)
+
+        changeSuggestionButton = Button(this).apply {
+            text = "CHANGER DE SUGGESTION"
+            setOnClickListener { generateAnotherSuggestion() }
+        }
+        root.addView(changeSuggestionButton)
+
+        root.addView(Button(this).apply {
+            text = "COPIER LA SUGGESTION"
+            setOnClickListener {
+                val value = suggestionText?.text?.toString().orEmpty()
+                if (value.isNotBlank()) {
+                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("HELP-STEVE", value))
+                    Toast.makeText(this@FloatingService, "Suggestion copiée", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+
+        root.addView(Button(this).apply {
+            text = "FERMER"
+            setOnClickListener { closeSuggestionOverlay() }
+        })
+
+        suggestionOverlay = root
+        try {
+            wm.addView(
+                root,
+                params(340, WindowManager.LayoutParams.WRAP_CONTENT).apply {
+                    gravity = Gravity.CENTER
+                    flags = flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+                }
+            )
+        } catch (error: Exception) {
+            suggestionOverlay = null
+            Toast.makeText(this, "Impossible d'afficher la suggestion : ${error.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun generateAnotherSuggestion() {
+        if (currentMessage.isBlank()) return
+
+        val button = changeSuggestionButton
+        button?.isEnabled = false
+        button?.text = "GÉNÉRATION..."
+        suggestionStatus?.text = "Gemini prépare une nouvelle formulation..."
+        val requestId = ++suggestionRequestNumber
+
+        val systemInstruction = """
+            Tu es HELP-STEVE, un assistant qui aide l'utilisateur à répondre à ses messages.
+            Personnalité demandée : $currentPersonality.
+            Langue obligatoire : $currentLanguage.
+            Génère une seule réponse naturelle, courte et directement envoyable.
+            Cette réponse doit être réellement différente de la précédente.
+            Ne donne ni explication, ni introduction, ni liste, ni guillemets.
+            N'invente aucun fait et respecte le contexte.
+        """.trimIndent()
+
+        val previous = suggestionText?.text?.toString().orEmpty()
+        val prompt = """
+            Contact : $currentContact
+            Message reçu : "$currentMessage"
+            Réponse précédente à ne pas répéter : "$previous"
+
+            Génère maintenant une nouvelle suggestion différente, avec une autre formulation ou un autre angle.
+            Retourne uniquement le texte de cette nouvelle réponse.
+        """.trimIndent()
+
+        GeminiClient.generate(applicationContext, prompt, systemInstruction) { result ->
+            if (requestId != suggestionRequestNumber || suggestionOverlay == null) return@generate
+            button?.isEnabled = true
+            button?.text = "CHANGER DE SUGGESTION"
+            result.onSuccess { value ->
+                suggestionText?.text = value.trim()
+                suggestionStatus?.text = "Nouvelle suggestion prête"
+            }.onFailure { error ->
+                suggestionStatus?.text = "Erreur : ${error.message ?: "serveur indisponible"}"
+                Toast.makeText(this, "Échec de génération. Vérifie HELP-STEVE-SERVER dans Termux.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun closeSuggestionOverlay() {
+        suggestionOverlay?.let { view ->
+            if (view.isAttachedToWindow) {
+                try { wm.removeView(view) } catch (_: Exception) { }
+            }
+        }
+        suggestionOverlay = null
+        suggestionText = null
+        suggestionStatus = null
+        changeSuggestionButton = null
+    }
+
     private fun refreshHistory() {
         val messages = MessageStore.getAll(applicationContext)
 
@@ -431,6 +617,8 @@ class FloatingService : Service() {
 
     override fun onDestroy() {
         closePanel()
+        closeSuggestionOverlay()
+        try { unregisterReceiver(suggestionReceiver) } catch (_: Exception) { }
 
         bubble?.let {
             if (it.isAttachedToWindow) wm.removeView(it)
@@ -441,4 +629,14 @@ class FloatingService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    companion object {
+        const val ACTION_SHOW_SUGGESTION = "com.steve.helpsteve.SHOW_SUGGESTION"
+        const val EXTRA_CONTACT = "contact"
+        const val EXTRA_PACKAGE = "package_name"
+        const val EXTRA_MESSAGE = "message"
+        const val EXTRA_SUGGESTION = "suggestion"
+        const val EXTRA_PERSONALITY = "personality"
+        const val EXTRA_LANGUAGE = "language"
+    }
 }
