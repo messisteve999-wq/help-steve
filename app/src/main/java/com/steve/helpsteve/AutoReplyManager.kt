@@ -58,8 +58,7 @@ object AutoReplyManager {
 
         return actions.firstOrNull { action ->
             val inputs = action.remoteInputs
-            !action.actionIntent.isCanceled &&
-                !inputs.isNullOrEmpty() &&
+            !inputs.isNullOrEmpty() &&
                 inputs.any { it.allowFreeFormInput }
         }
     }
