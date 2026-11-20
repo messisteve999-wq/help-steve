@@ -24,11 +24,6 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
-          packages: ''
-
-      - name: Accept Android licenses
-        run: |
-          yes | sdkmanager --licenses || true
 
       - name: Install Android packages
         run: |
@@ -45,7 +40,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: HELP-STEVE-V1-APK
+          name: HELP-STEVE-V1.4-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7

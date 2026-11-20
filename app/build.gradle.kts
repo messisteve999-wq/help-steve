@@ -11,8 +11,8 @@ android {
         applicationId = "com.steve.helpsteve"
         minSdk = 23
         targetSdk = 28
-        versionCode = 3
-        versionName = "1.3"
+        versionCode = 4
+        versionName = "1.4"
     }
 
     compileOptions {
