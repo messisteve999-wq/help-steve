@@ -154,8 +154,11 @@ class ChatWindow(
 
     private fun settings() = MessageStore.settingsFor(app!!, sender!!)
 
-    private fun lastIncoming(): IncomingMessage? =
-        MessageStore.history(app ?: return null, sender ?: return null).lastOrNull { !it.fromMe }
+    private fun lastIncoming(): IncomingMessage? {
+        val a = app ?: return null
+        val c = sender ?: return null
+        return MessageStore.history(a, c).lastOrNull { !it.fromMe }
+    }
 
     private fun refreshConversation() {
         val a = app ?: return
