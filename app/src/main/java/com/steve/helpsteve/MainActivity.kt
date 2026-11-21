@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
             hint = "Coller le jeton du serveur"
             inputType = InputType.TYPE_CLASS_TEXT or
                 InputType.TYPE_TEXT_VARIATION_PASSWORD
-            singleLine = true
+            maxLines = 1
         }
         content.addView(tokenInput)
 
