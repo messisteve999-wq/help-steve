@@ -181,9 +181,12 @@ class ChatWindow(
         val c = sender ?: return
         val s = settings()
         titleView.text = "$c · $a"
-        modeBtn.text = "M"\n        modeBtn.contentDescription = if (s.mode == Mode.AUTO) "Mode automatique" else "Mode suggestions"
-        langBtn.text = "L"\n        langBtn.contentDescription = "Langue : ${s.language.label}"
-        personaBtn.text = "P"\n        personaBtn.contentDescription = "Personnalité : ${s.personality.label}"
+        modeBtn.text = "M"
+        modeBtn.contentDescription = if (s.mode == Mode.AUTO) "Mode automatique" else "Mode suggestions"
+        langBtn.text = "L"
+        langBtn.contentDescription = "Langue : ${s.language.label}"
+        personaBtn.text = "P"
+        personaBtn.contentDescription = "Personnalité : ${s.personality.label}"
         suggestionLabel.visibility = if (s.mode == Mode.SUGGESTION) View.VISIBLE else View.GONE
 
         val p = AutoReplier.pending.values.firstOrNull { it.msg.app == a && it.msg.sender == c }
