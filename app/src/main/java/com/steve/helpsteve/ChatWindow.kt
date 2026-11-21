@@ -35,9 +35,9 @@ class ChatWindow(
     private val homePane = ScrollView(ctx)
     private val convPane = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
     private val titleView = tv("", 15f, 0xFF00E5FF.toInt())
-    private val modeBtn = btn("") { toggleMode() }
-    private val langBtn = btn("") { cycleLanguage() }
-    private val personaBtn = btn("") { cyclePersona() }
+    private val modeBtn = btn("⚙ Mode") { toggleMode() }
+    private val langBtn = btn("文 Langue") { cycleLanguage() }
+    private val personaBtn = btn("✦ Style") { cyclePersona() }
     private val pendingRow = LinearLayout(ctx).apply { visibility = View.GONE }
     private val pendingLabel = tv("", 12f, 0xFFFFD166.toInt())
     private val messagesBox = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
@@ -74,7 +74,7 @@ class ChatWindow(
         column.addView(homePane, LinearLayout.LayoutParams(-1, 0, 1f))
 
         val header = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        header.addView(btn("←") { showHome() })
+        header.addView(btn("← Retour") { showHome() })
         header.addView(titleView, LinearLayout.LayoutParams(0, -2, 1f))
         header.addView(modeBtn)
         convPane.addView(header)
@@ -86,21 +86,21 @@ class ChatWindow(
 
         pendingRow.orientation = LinearLayout.HORIZONTAL
         pendingRow.addView(pendingLabel, LinearLayout.LayoutParams(0, -2, 1f))
-        pendingRow.addView(btn("Annuler") { pendingId?.let { AutoReplier.cancel(it) } })
+        pendingRow.addView(btn("⏸ Annuler") { pendingId?.let { AutoReplier.cancel(it) } })
         convPane.addView(pendingRow)
 
         convPane.addView(ScrollView(ctx).apply { addView(messagesBox) }, LinearLayout.LayoutParams(-1, 0, 1f))
         convPane.addView(suggestionLabel)
 
         val actions = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
-        actions.addView(btn("Utiliser") { suggestion?.let { input.setText(it) } })
-        actions.addView(btn("🔄 Changer") { generateSuggestion(suggestion) })
-        actions.addView(btn("Coller") { pasteIntoInput() })
+        actions.addView(btn("✓ Utiliser") { suggestion?.let { input.setText(it) } })
+        actions.addView(btn("↻ Autre") { generateSuggestion(suggestion) })
+        actions.addView(btn("▣ Coller") { pasteIntoInput() })
         convPane.addView(actions)
 
         val sendRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
         sendRow.addView(input, LinearLayout.LayoutParams(0, -2, 1f))
-        sendRow.addView(btn("✈ Envoyer") { sendInput() })
+        sendRow.addView(btn("➤ Envoyer") { sendInput() })
         convPane.addView(sendRow)
 
         column.addView(convPane, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -181,11 +181,11 @@ class ChatWindow(
         val c = sender ?: return
         val s = settings()
         titleView.text = "$c · $a"
-        modeBtn.text = "M"
+        modeBtn.text = if (s.mode == Mode.AUTO) "⚡ AUTO" else "⚙ Suggestions"
         modeBtn.contentDescription = if (s.mode == Mode.AUTO) "Mode automatique" else "Mode suggestions"
-        langBtn.text = "L"
+        langBtn.text = "文 ${s.language.label}"
         langBtn.contentDescription = "Langue : ${s.language.label}"
-        personaBtn.text = "P"
+        personaBtn.text = "✦ ${s.personality.label}"
         personaBtn.contentDescription = "Personnalité : ${s.personality.label}"
         suggestionLabel.visibility = if (s.mode == Mode.SUGGESTION) View.VISIBLE else View.GONE
 
@@ -220,16 +220,16 @@ class ChatWindow(
         MessageStore.translations[m.id]?.let { box.addView(tv("🌐 $it", 12f, 0xFFB0FFD0.toInt())) }
 
         val row = LinearLayout(ctx).apply { gravity = Gravity.END }
-        row.addView(btn("🌐 FR") { translate(m) })
+        row.addView(btn("🌐 Traduire") { translate(m) })
         box.addView(row)
 
         if (selectedId == m.id) {
             val actions = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
-            actions.addView(btn("Copier") {
+            actions.addView(btn("⧉ Copier") {
                 clipboard.setPrimaryClip(ClipData.newPlainText("help-steve", m.text))
             })
-            actions.addView(btn("Coller") { pasteIntoInput() })
-            actions.addView(btn("Supprimer") {
+            actions.addView(btn("▣ Coller") { pasteIntoInput() })
+            actions.addView(btn("✕ Supprimer") {
                 MessageStore.delete(m.id)
                 selectedId = null
                 refreshConversation()
@@ -323,45 +323,30 @@ class ChatWindow(
 
 
     private fun btn(t: String, onClick: () -> Unit) = Button(ctx).apply {
-        val letters = mapOf(
-            "←" to "←",
-            "Annuler" to "X",
-            "Utiliser" to "U",
-            "🔄 Changer" to "R",
-            "Coller" to "C",
-            "✈ Envoyer" to "E",
-            "🌐 FR" to "T",
-            "Copier" to "C",
-            "Supprimer" to "D"
-        )
-
-        val letter = letters[t]
-        text = letter ?: t
+        text = t
         contentDescription = t
-        textSize = if (letter != null) 13f else 11f
+        textSize = 10f
         isAllCaps = false
         setTextColor(Color.WHITE)
+        minWidth = 0
+        minHeight = 0
+        minimumWidth = 0
+        minimumHeight = 0
+        setPadding(7, 3, 7, 3)
 
-        background = GradientDrawable().apply {
-            setColor(0xFF172844.toInt())
-            if (letter != null) {
-                shape = GradientDrawable.OVAL
-                setStroke(1, 0xFF00DFFF.toInt())
-            } else {
-                cornerRadius = 14f
-                setStroke(1, 0xFF287DAB.toInt())
-            }
+        background = GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            intArrayOf(0xFF173957.toInt(), 0xFF101D38.toInt())
+        ).apply {
+            cornerRadius = 13f
+            setStroke(1, 0xFF00DFFF.toInt())
         }
 
-        if (letter != null) {
-            setPadding(0, 0, 0, 0)
-            minWidth = 0
-            minHeight = 0
-            layoutParams = LinearLayout.LayoutParams(34, 34).apply {
-                setMargins(2, 2, 2, 2)
-            }
-        } else {
-            setPadding(7, 4, 7, 4)
+        elevation = 3f
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, 34
+        ).apply {
+            setMargins(2, 2, 2, 2)
         }
 
         setOnClickListener { onClick() }

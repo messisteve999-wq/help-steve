@@ -34,8 +34,8 @@ class BubbleService : Service() {
 
         val metrics = resources.displayMetrics
         val chatParams = overlayParams(
-            (metrics.widthPixels * 0.86).toInt(),
-            (metrics.heightPixels * 0.64).toInt()
+            (metrics.widthPixels * 0.82).toInt(),
+            (metrics.heightPixels * 0.60).toInt()
         ).apply { gravity = Gravity.CENTER }
         chatRoot = FrameLayout(this).apply { visibility = View.GONE }
         chat = ChatWindow(this, wm, chatParams, chatRoot)
