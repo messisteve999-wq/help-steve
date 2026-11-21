@@ -34,8 +34,8 @@ class BubbleService : Service() {
 
         val metrics = resources.displayMetrics
         val chatParams = overlayParams(
-            (metrics.widthPixels * 0.78).toInt(),
-            (metrics.heightPixels * 0.5).toInt()
+            (metrics.widthPixels * 0.92).toInt(),
+            (metrics.heightPixels * 0.72).toInt()
         ).apply { gravity = Gravity.CENTER }
         chatRoot = FrameLayout(this).apply { visibility = View.GONE }
         chat = ChatWindow(this, wm, chatParams, chatRoot)
@@ -79,15 +79,15 @@ class BubbleService : Service() {
         bubble = ImageView(this).apply {
             setImageResource(R.drawable.ic_robot_bubble)
             scaleType = ImageView.ScaleType.FIT_CENTER
-            setPadding(12, 12, 12, 12)
+            setPadding(7, 7, 7, 7)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(0xFF071226.toInt())
-                setStroke(3, 0xFF00E5FF.toInt())
+                setStroke(2, 0xFF00E5FF.toInt())
             }
             elevation = 12f
         }
-        val lp = overlayParams(110, 110).apply {
+        val lp = overlayParams(72, 72).apply {
             gravity = Gravity.TOP or Gravity.START
             x = 0
             y = 300

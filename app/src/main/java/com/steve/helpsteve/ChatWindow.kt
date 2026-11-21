@@ -34,7 +34,7 @@ class ChatWindow(
     private val contactsBox = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
     private val homePane = ScrollView(ctx)
     private val convPane = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-    private val titleView = tv("", 16f, 0xFF00E5FF.toInt())
+    private val titleView = tv("", 15f, 0xFF00E5FF.toInt())
     private val modeBtn = btn("") { toggleMode() }
     private val langBtn = btn("") { cycleLanguage() }
     private val personaBtn = btn("") { cyclePersona() }
@@ -52,14 +52,14 @@ class ChatWindow(
             cornerRadius = 18f
             setStroke(1, 0xFF287DAB.toInt())
         }
-        setPadding(14, 10, 14, 10)
+        setPadding(10, 7, 10, 7)
     }
 
     init {
         root.addView(RobotBackgroundView(ctx), FrameLayout.LayoutParams(-1, -1))
         val column = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(14, 14, 14, 14)
+            setPadding(8, 8, 8, 8)
             background = GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 intArrayOf(0xF20B1428.toInt(), 0xF21B1640.toInt())
@@ -181,9 +181,9 @@ class ChatWindow(
         val c = sender ?: return
         val s = settings()
         titleView.text = "$c · $a"
-        modeBtn.text = if (s.mode == Mode.AUTO) "⚡ Auto" else "💬 Suggestion"
-        langBtn.text = "🌐 ${s.language.label}"
-        personaBtn.text = "🎭 ${s.personality.label}"
+        modeBtn.text = "M"\n        modeBtn.contentDescription = if (s.mode == Mode.AUTO) "Mode automatique" else "Mode suggestions"
+        langBtn.text = "L"\n        langBtn.contentDescription = "Langue : ${s.language.label}"
+        personaBtn.text = "P"\n        personaBtn.contentDescription = "Personnalité : ${s.personality.label}"
         suggestionLabel.visibility = if (s.mode == Mode.SUGGESTION) View.VISIBLE else View.GONE
 
         val p = AutoReplier.pending.values.firstOrNull { it.msg.app == a && it.msg.sender == c }
@@ -204,9 +204,9 @@ class ChatWindow(
         val who = if (m.fromMe) "Steve" else m.sender
         val box = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(16, 12, 16, 12)
+            setPadding(10, 7, 10, 7)
             background = bubbleBg(if (m.fromMe) 0x3300E5FF else 0x33B26BFF)
-            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, 8, 0, 0) }
+            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, 4, 0, 0) }
         }
         box.addView(tv("$who : ${m.text}", 13f).apply {
             setOnClickListener {
@@ -318,17 +318,49 @@ class ChatWindow(
         setPadding(8, 6, 8, 6)
     }
 
+
     private fun btn(t: String, onClick: () -> Unit) = Button(ctx).apply {
-        text = t
-        textSize = 11f
+        val letters = mapOf(
+            "←" to "←",
+            "Annuler" to "X",
+            "Utiliser" to "U",
+            "🔄 Changer" to "R",
+            "Coller" to "C",
+            "✈ Envoyer" to "E",
+            "🌐 FR" to "T",
+            "Copier" to "C",
+            "Supprimer" to "D"
+        )
+
+        val letter = letters[t]
+        text = letter ?: t
+        contentDescription = t
+        textSize = if (letter != null) 13f else 11f
         isAllCaps = false
         setTextColor(Color.WHITE)
+
         background = GradientDrawable().apply {
             setColor(0xFF172844.toInt())
-            cornerRadius = 18f
-            setStroke(1, 0xFF287DAB.toInt())
+            if (letter != null) {
+                shape = GradientDrawable.OVAL
+                setStroke(1, 0xFF00DFFF.toInt())
+            } else {
+                cornerRadius = 14f
+                setStroke(1, 0xFF287DAB.toInt())
+            }
         }
-        setPadding(10, 5, 10, 5)
+
+        if (letter != null) {
+            setPadding(0, 0, 0, 0)
+            minWidth = 0
+            minHeight = 0
+            layoutParams = LinearLayout.LayoutParams(34, 34).apply {
+                setMargins(2, 2, 2, 2)
+            }
+        } else {
+            setPadding(7, 4, 7, 4)
+        }
+
         setOnClickListener { onClick() }
     }
 
