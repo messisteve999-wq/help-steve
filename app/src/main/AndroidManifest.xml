@@ -8,7 +8,9 @@
 
     <application
         android:usesCleartextTraffic="true"
-        android:label="help-steve"
+        android:label="HELP-STEVE"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
@@ -31,7 +33,9 @@
         <service
             android:name=".HelpSteveListener"
             android:exported="true"
-            android:label="help-steve"
+            android:label="HELP-STEVE"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

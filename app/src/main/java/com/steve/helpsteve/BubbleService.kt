@@ -15,13 +15,13 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
-import android.widget.TextView
+import android.widget.ImageView
 import android.widget.Toast
 import kotlin.math.abs
 
 class BubbleService : Service() {
     private lateinit var wm: WindowManager
-    private lateinit var bubble: TextView
+    private lateinit var bubble: ImageView
     private lateinit var chatRoot: FrameLayout
     private lateinit var chat: ChatWindow
     private var chatVisible = false
@@ -46,8 +46,8 @@ class BubbleService : Service() {
         MessageStore.onIncoming = { msg -> chat.onIncoming(msg) }
         AutoReplier.onSent = { msg ->
             // La bulle signale qu'une réponse automatique vient d'être envoyée
-            bubble.text = "✅"
-            bubble.postDelayed({ bubble.text = "🤖" }, 5000)
+            bubble.setImageResource(android.R.drawable.checkbox_on_background)
+            bubble.postDelayed({ bubble.setImageResource(R.drawable.ic_robot_bubble) }, 5000)
             Toast.makeText(this, "help-steve a répondu à ${msg.sender}", Toast.LENGTH_SHORT).show()
         }
     }
@@ -76,15 +76,16 @@ class BubbleService : Service() {
     }
 
     private fun createBubble() {
-        bubble = TextView(this).apply {
-            text = "🤖"
-            textSize = 20f
-            gravity = Gravity.CENTER
+        bubble = ImageView(this).apply {
+            setImageResource(R.drawable.ic_robot_bubble)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setPadding(12, 12, 12, 12)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(0xFF1A1036.toInt())
+                setColor(0xFF071226.toInt())
                 setStroke(3, 0xFF00E5FF.toInt())
             }
+            elevation = 12f
         }
         val lp = overlayParams(110, 110).apply {
             gravity = Gravity.TOP or Gravity.START
