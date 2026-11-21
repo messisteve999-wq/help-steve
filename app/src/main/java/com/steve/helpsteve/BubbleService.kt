@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
-
 import android.os.IBinder
 import android.view.Gravity
 import android.view.MotionEvent
@@ -16,43 +15,72 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import kotlin.math.abs
 
 class BubbleService : Service() {
+
     private lateinit var wm: WindowManager
+    private lateinit var bubbleContainer: FrameLayout
     private lateinit var bubble: ImageView
+    private lateinit var sentBadge: TextView
     private lateinit var chatRoot: FrameLayout
     private lateinit var chat: ChatWindow
+
     private var chatVisible = false
+    private var autoSentCount = 0
 
     override fun onCreate() {
         super.onCreate()
+
         GeminiClient.initialize(applicationContext)
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
         startAsForeground()
 
         val metrics = resources.displayMetrics
+
         val chatParams = overlayParams(
             (metrics.widthPixels * 0.82).toInt(),
             (metrics.heightPixels * 0.60).toInt()
-        ).apply { gravity = Gravity.CENTER }
-        chatRoot = FrameLayout(this).apply { visibility = View.GONE }
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        chatRoot = FrameLayout(this).apply {
+            visibility = View.GONE
+        }
+
         chat = ChatWindow(this, wm, chatParams, chatRoot)
         wm.addView(chatRoot, chatParams)
 
         createBubble()
 
-        MessageStore.onIncoming = { msg -> chat.onIncoming(msg) }
+        MessageStore.onIncoming = { msg ->
+            chat.onIncoming(msg)
+        }
+
         AutoReplier.onSent = { msg ->
-            // La bulle signale qu'une réponse automatique vient d'être envoyée
-            bubble.setImageResource(android.R.drawable.checkbox_on_background)
-            bubble.postDelayed({ bubble.setImageResource(R.drawable.ic_robot_bubble) }, 5000)
-            Toast.makeText(this, "help-steve a répondu à ${msg.sender}", Toast.LENGTH_SHORT).show()
+            // Ce callback est déclenché uniquement après un envoi réussi.
+            sentBadge.post {
+                autoSentCount++
+                updateSentBadge()
+
+                Toast.makeText(
+                    this,
+                    "HELP-STEVE a répondu automatiquement à ${msg.sender}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int = START_STICKY
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -60,15 +88,33 @@ class BubbleService : Service() {
         MessageStore.onIncoming = null
         AutoReplier.onSent = null
         AutoReplier.onUpdate = null
-        wm.removeView(bubble)
-        wm.removeView(chatRoot)
+
+        if (::bubbleContainer.isInitialized) {
+            wm.removeView(bubbleContainer)
+        }
+
+        if (::chatRoot.isInitialized) {
+            wm.removeView(chatRoot)
+        }
+
         super.onDestroy()
     }
 
-    private fun overlayParams(w: Int, h: Int, focusable: Boolean = false): WindowManager.LayoutParams {
-        val flags = if (focusable) 0 else WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+    private fun overlayParams(
+        w: Int,
+        h: Int,
+        focusable: Boolean = false
+    ): WindowManager.LayoutParams {
+
+        val flags = if (focusable) {
+            0
+        } else {
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        }
+
         return WindowManager.LayoutParams(
-            w, h,
+            w,
+            h,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             flags or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
@@ -76,65 +122,160 @@ class BubbleService : Service() {
     }
 
     private fun createBubble() {
+
+        bubbleContainer = FrameLayout(this)
+
         bubble = ImageView(this).apply {
             setImageResource(R.drawable.ic_robot_bubble)
             scaleType = ImageView.ScaleType.FIT_XY
             setPadding(0, 0, 0, 0)
+
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(0xFF071226.toInt())
                 setStroke(2, 0xFF00E5FF.toInt())
             }
+
             clipToOutline = true
             elevation = 12f
         }
-        val lp = overlayParams(50, 50).apply {
+
+        val imageParams = FrameLayout.LayoutParams(
+            50,
+            50,
+            Gravity.CENTER
+        )
+
+        bubbleContainer.addView(bubble, imageParams)
+
+        sentBadge = TextView(this).apply {
+            text = ""
+            textSize = 10f
+            setTextColor(0xFFFFFFFF.toInt())
+            gravity = Gravity.CENTER
+            setPadding(5, 2, 5, 2)
+            visibility = View.GONE
+
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 30f
+                setColor(0xFF16A34A.toInt())
+                setStroke(2, 0xFFFFFFFF.toInt())
+            }
+
+            elevation = 20f
+        }
+
+        val badgeParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            20,
+            Gravity.TOP or Gravity.END
+        )
+
+        bubbleContainer.addView(sentBadge, badgeParams)
+
+        val lp = overlayParams(60, 60).apply {
             gravity = Gravity.TOP or Gravity.START
             x = 0
             y = 300
         }
+
         var startX = 0
         var startY = 0
         var touchX = 0f
         var touchY = 0f
         var moved = false
-        bubble.setOnTouchListener { _, e ->
-            when (e.action) {
+
+        bubbleContainer.setOnTouchListener { _, event ->
+
+            when (event.action) {
+
                 MotionEvent.ACTION_DOWN -> {
-                    startX = lp.x; startY = lp.y
-                    touchX = e.rawX; touchY = e.rawY
+                    startX = lp.x
+                    startY = lp.y
+                    touchX = event.rawX
+                    touchY = event.rawY
                     moved = false
                 }
+
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = (e.rawX - touchX).toInt()
-                    val dy = (e.rawY - touchY).toInt()
-                    if (abs(dx) > 10 || abs(dy) > 10) moved = true
+                    val dx = (event.rawX - touchX).toInt()
+                    val dy = (event.rawY - touchY).toInt()
+
+                    if (abs(dx) > 10 || abs(dy) > 10) {
+                        moved = true
+                    }
+
                     lp.x = startX + dx
                     lp.y = startY + dy
-                    wm.updateViewLayout(bubble, lp)
+
+                    wm.updateViewLayout(bubbleContainer, lp)
                 }
-                MotionEvent.ACTION_UP -> if (!moved) toggleChat()
+
+                MotionEvent.ACTION_UP -> {
+                    if (!moved) {
+                        toggleChat()
+                    }
+                }
             }
+
             true
         }
-        wm.addView(bubble, lp)
+
+        wm.addView(bubbleContainer, lp)
+    }
+
+    private fun updateSentBadge() {
+
+        if (!::sentBadge.isInitialized) return
+
+        val countText = if (autoSentCount > 99) {
+            "✓99+"
+        } else {
+            "✓$autoSentCount"
+        }
+
+        sentBadge.text = countText
+        sentBadge.visibility = View.VISIBLE
+
+        sentBadge.scaleX = 1.25f
+        sentBadge.scaleY = 1.25f
+
+        sentBadge.animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(200)
+            .start()
     }
 
     private fun toggleChat() {
         chatVisible = !chatVisible
-        chatRoot.visibility = if (chatVisible) View.VISIBLE else View.GONE
+        chatRoot.visibility = if (chatVisible) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
     }
 
     private fun startAsForeground() {
+
         val channelId = "helpsteve_bubble"
+
         val nm = getSystemService(NotificationManager::class.java)
+
         nm.createNotificationChannel(
-            NotificationChannel(channelId, "help-steve", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(
+                channelId,
+                "help-steve",
+                NotificationManager.IMPORTANCE_LOW
+            )
         )
+
         val notif = Notification.Builder(this, channelId)
             .setContentTitle("help-steve actif")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .build()
+
         startForeground(1, notif)
     }
 }
