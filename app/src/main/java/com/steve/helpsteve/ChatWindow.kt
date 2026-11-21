@@ -47,11 +47,27 @@ class ChatWindow(
         setTextColor(Color.WHITE)
         setHintTextColor(0x88FFFFFF.toInt())
         textSize = 14f
+        background = GradientDrawable().apply {
+            setColor(0xFF14233C.toInt())
+            cornerRadius = 18f
+            setStroke(1, 0xFF287DAB.toInt())
+        }
+        setPadding(14, 10, 14, 10)
     }
 
     init {
         root.addView(RobotBackgroundView(ctx), FrameLayout.LayoutParams(-1, -1))
-        val column = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; setPadding(16, 16, 16, 16) }
+        val column = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(14, 14, 14, 14)
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0xF20B1428.toInt(), 0xF21B1640.toInt())
+            ).apply {
+                cornerRadius = 28f
+                setStroke(2, 0xFF00DFFF.toInt())
+            }
+        }
 
         column.addView(HorizontalScrollView(ctx).apply { addView(appRow) })
         homePane.addView(contactsBox)
@@ -304,13 +320,21 @@ class ChatWindow(
 
     private fun btn(t: String, onClick: () -> Unit) = Button(ctx).apply {
         text = t
-        textSize = 12f
+        textSize = 11f
         isAllCaps = false
+        setTextColor(Color.WHITE)
+        background = GradientDrawable().apply {
+            setColor(0xFF172844.toInt())
+            cornerRadius = 18f
+            setStroke(1, 0xFF287DAB.toInt())
+        }
+        setPadding(10, 5, 10, 5)
         setOnClickListener { onClick() }
     }
 
     private fun bubbleBg(color: Int) = GradientDrawable().apply {
         setColor(color)
-        cornerRadius = 20f
+        cornerRadius = 22f
+        setStroke(1, 0x553BDFFF)
     }
 }
