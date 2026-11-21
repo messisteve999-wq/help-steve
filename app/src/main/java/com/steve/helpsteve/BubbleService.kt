@@ -7,43 +7,47 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.os.Build
+
 import android.os.IBinder
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import android.widget.Toast
 import kotlin.math.abs
 
 class BubbleService : Service() {
     private lateinit var wm: WindowManager
     private lateinit var bubble: TextView
-    private lateinit var chatWindow: FrameLayout
-    private lateinit var messagesView: TextView
+    private lateinit var chatRoot: FrameLayout
+    private lateinit var chat: ChatWindow
     private var chatVisible = false
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     override fun onCreate() {
         super.onCreate()
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         startAsForeground()
+
+        val metrics = resources.displayMetrics
+        val chatParams = overlayParams(
+            (metrics.widthPixels * 0.78).toInt(),
+            (metrics.heightPixels * 0.5).toInt()
+        ).apply { gravity = Gravity.CENTER }
+        chatRoot = FrameLayout(this).apply { visibility = View.GONE }
+        chat = ChatWindow(this, wm, chatParams, chatRoot)
+        wm.addView(chatRoot, chatParams)
+
         createBubble()
-        createChatWindow()
-        MessageStore.onNew = { msg ->
-            messagesView.append("\n${msg.app} · ${msg.sender} : ${msg.text}")
+
+        MessageStore.onIncoming = { msg -> chat.onIncoming(msg) }
+        AutoReplier.onSent = { msg ->
+            // La bulle signale qu'une réponse automatique vient d'être envoyée
+            bubble.text = "✅"
+            bubble.postDelayed({ bubble.text = "🤖" }, 5000)
+            Toast.makeText(this, "help-steve a répondu à ${msg.sender}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -52,10 +56,11 @@ class BubbleService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        MessageStore.onNew = null
-        scope.cancel()
+        MessageStore.onIncoming = null
+        AutoReplier.onSent = null
+        AutoReplier.onUpdate = null
         wm.removeView(bubble)
-        wm.removeView(chatWindow)
+        wm.removeView(chatRoot)
         super.onDestroy()
     }
 
@@ -72,16 +77,15 @@ class BubbleService : Service() {
     private fun createBubble() {
         bubble = TextView(this).apply {
             text = "🤖"
-            textSize = 26f
+            textSize = 20f
             gravity = Gravity.CENTER
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(0xFF1A1036.toInt())
-                setStroke(4, 0xFF00E5FF.toInt())
+                setStroke(3, 0xFF00E5FF.toInt())
             }
         }
-        // Position libre : la bulle peut être placée n'importe où
-        val lp = overlayParams(150, 150).apply {
+        val lp = overlayParams(110, 110).apply {
             gravity = Gravity.TOP or Gravity.START
             x = 0
             y = 300
@@ -113,54 +117,9 @@ class BubbleService : Service() {
         wm.addView(bubble, lp)
     }
 
-    private fun createChatWindow() {
-        val container = FrameLayout(this)
-        container.addView(RobotBackgroundView(this), FrameLayout.LayoutParams(-1, -1))
-
-        val column = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 32, 32)
-        }
-        column.addView(TextView(this).apply {
-            text = "help-steve IA"
-            textSize = 18f
-            setTextColor(0xFF00E5FF.toInt())
-        })
-        messagesView = TextView(this).apply {
-            textSize = 14f
-            setTextColor(Color.WHITE)
-            text = "En attente de messages..."
-        }
-        column.addView(
-            ScrollView(this).apply { addView(messagesView) },
-            LinearLayout.LayoutParams(-1, 0, 1f)
-        )
-        column.addView(Button(this).apply {
-            text = "Suggestion IA"
-            setOnClickListener { suggestForLast() }
-        })
-        container.addView(column, FrameLayout.LayoutParams(-1, -1))
-
-        val metrics = resources.displayMetrics
-        val lp = overlayParams((metrics.widthPixels * 0.9).toInt(), (metrics.heightPixels * 0.6).toInt()).apply {
-            gravity = Gravity.CENTER
-        }
-        chatWindow = container
-        chatWindow.visibility = View.GONE
-        wm.addView(chatWindow, lp)
-    }
-
     private fun toggleChat() {
         chatVisible = !chatVisible
-        chatWindow.visibility = if (chatVisible) View.VISIBLE else View.GONE
-    }
-
-    private fun suggestForLast() {
-        val last = MessageStore.messages.lastOrNull() ?: return
-        scope.launch {
-            val reply = withContext(Dispatchers.IO) { GeminiClient.suggest(last.text) }
-            messagesView.append("\n\n🤖 Suggestion : $reply")
-        }
+        chatRoot.visibility = if (chatVisible) View.VISIBLE else View.GONE
     }
 
     private fun startAsForeground() {
