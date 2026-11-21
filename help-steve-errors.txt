@@ -1,0 +1,72 @@
+build	Build APK	﻿2026-11-20T20:04:14.1784619Z ##[group]Run gradle assembleDebug --no-daemon
+build	Build APK	2026-11-20T20:04:14.1785216Z ^[[36;1mgradle assembleDebug --no-daemon^[[0m
+build	Build APK	2026-11-20T20:04:14.1849747Z shell: /usr/bin/bash -e {0}
+build	Build APK	2026-11-20T20:04:14.1850289Z env:
+build	Build APK	2026-11-20T20:04:14.1850743Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+build	Build APK	2026-11-20T20:04:14.1851441Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+build	Build APK	2026-11-20T20:04:14.1852295Z   ANDROID_HOME: /usr/local/lib/android/sdk
+build	Build APK	2026-11-20T20:04:14.1852743Z   ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+build	Build APK	2026-11-20T20:04:14.1853204Z   GRADLE_ACTION_ID: gradle/actions/setup-gradle
+build	Build APK	2026-11-20T20:04:14.1853644Z   GRADLE_USER_HOME: /home/runner/.gradle
+build	Build APK	2026-11-20T20:04:14.1854073Z   GRADLE_BUILD_ACTION_SETUP_COMPLETED: true
+build	Build APK	2026-11-20T20:04:14.1854498Z   GRADLE_BUILD_ACTION_CACHE_RESTORED: true
+build	Build APK	2026-11-20T20:04:14.1855121Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+build	Build APK	2026-11-20T20:04:14.1855793Z   DEVELOCITY_INJECTION_CUSTOM_VALUE: gradle-actions
+build	Build APK	2026-11-20T20:04:14.1856310Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+build	Build APK	2026-11-20T20:04:14.1856713Z ##[endgroup]
+build	Build APK	2026-11-20T20:04:14.7995201Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+build	Build APK	2026-11-20T20:04:15.6977033Z Daemon will be stopped at the end of the build 
+build	Build APK	2026-11-20T20:04:27.4004871Z > Task :app:preBuild UP-TO-DATE
+build	Build APK	2026-11-20T20:04:27.4005812Z > Task :app:preDebugBuild UP-TO-DATE
+build	Build APK	2026-11-20T20:04:27.4979338Z > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+build	Build APK	2026-11-20T20:04:27.4994995Z > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+build	Build APK	2026-11-20T20:04:27.5991836Z > Task :app:generateDebugResValues
+build	Build APK	2026-11-20T20:04:27.6002500Z > Task :app:checkDebugAarMetadata
+build	Build APK	2026-11-20T20:04:27.6003372Z > Task :app:mapDebugSourceSetPaths
+build	Build APK	2026-11-20T20:04:27.6004258Z > Task :app:generateDebugResources
+build	Build APK	2026-11-20T20:04:27.6994645Z > Task :app:mergeDebugResources
+build	Build APK	2026-11-20T20:04:27.7004639Z > Task :app:packageDebugResources
+build	Build APK	2026-11-20T20:04:27.7971922Z > Task :app:createDebugCompatibleScreenManifests
+build	Build APK	2026-11-20T20:04:27.7987976Z > Task :app:extractDeepLinksDebug
+build	Build APK	2026-11-20T20:04:27.8011431Z > Task :app:parseDebugLocalResources
+build	Build APK	2026-11-20T20:04:27.8967943Z > Task :app:processDebugMainManifest
+build	Build APK	2026-11-20T20:04:27.9991499Z > Task :app:processDebugManifest
+build	Build APK	2026-11-20T20:04:27.9992170Z > Task :app:javaPreCompileDebug
+build	Build APK	2026-11-20T20:04:27.9992674Z > Task :app:mergeDebugShaders
+build	Build APK	2026-11-20T20:04:27.9993184Z > Task :app:compileDebugShaders NO-SOURCE
+build	Build APK	2026-11-20T20:04:27.9993746Z > Task :app:generateDebugAssets UP-TO-DATE
+build	Build APK	2026-11-20T20:04:27.9994261Z > Task :app:mergeDebugAssets
+build	Build APK	2026-11-20T20:04:28.0967959Z > Task :app:compressDebugAssets
+build	Build APK	2026-11-20T20:04:28.8973261Z > Task :app:desugarDebugFileDependencies
+build	Build APK	2026-11-20T20:04:28.8977118Z > Task :app:processDebugManifestForPackage
+build	Build APK	2026-11-20T20:04:28.8977724Z > Task :app:checkDebugDuplicateClasses
+build	Build APK	2026-11-20T20:04:29.2970363Z > Task :app:processDebugResources
+build	Build APK	2026-11-20T20:04:30.2001094Z > Task :app:mergeLibDexDebug
+build	Build APK	2026-11-20T20:04:30.2001856Z > Task :app:mergeDebugJniLibFolders
+build	Build APK	2026-11-20T20:04:30.2992273Z > Task :app:mergeDebugNativeLibs NO-SOURCE
+build	Build APK	2026-11-20T20:04:30.3040959Z > Task :app:stripDebugDebugSymbols NO-SOURCE
+build	Build APK	2026-11-20T20:04:31.3981462Z > Task :app:validateSigningDebug
+build	Build APK	2026-11-20T20:04:31.4011045Z > Task :app:writeDebugAppMetadata
+build	Build APK	2026-11-20T20:04:31.4017417Z > Task :app:writeDebugSigningConfigVersions
+build	Build APK	2026-11-20T20:04:31.4968142Z > Task :app:mergeExtDexDebug
+build	Build APK	2026-11-20T20:04:35.5992337Z e: file:///home/runner/work/help-steve/help-steve/app/src/main/java/com/steve/helpsteve/AutoReplyManager.kt:61:34 Unresolved reference 'isCanceled'.
+build	Build APK	2026-11-20T20:04:35.5993214Z 
+build	Build APK	2026-11-20T20:04:35.6010917Z > Task :app:compileDebugKotlin FAILED
+build	Build APK	2026-11-20T20:04:35.6974358Z 
+build	Build APK	2026-11-20T20:04:35.6987793Z gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1795205057293.json
+build	Build APK	2026-11-20T20:04:35.6989788Z FAILURE: Build failed with an exception.
+build	Build APK	2026-11-20T20:04:35.6993068Z 
+build	Build APK	2026-11-20T20:04:35.6993352Z 26 actionable tasks: 26 executed
+build	Build APK	2026-11-20T20:04:35.6994433Z * What went wrong:
+build	Build APK	2026-11-20T20:04:35.6995174Z Execution failed for task ':app:compileDebugKotlin'.
+build	Build APK	2026-11-20T20:04:35.6997014Z > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+build	Build APK	2026-11-20T20:04:35.6998337Z    > Compilation error. See log for more details
+build	Build APK	2026-11-20T20:04:35.6998858Z 
+build	Build APK	2026-11-20T20:04:35.6999188Z * Try:
+build	Build APK	2026-11-20T20:04:35.6999852Z > Run with --stacktrace option to get the stack trace.
+build	Build APK	2026-11-20T20:04:35.7000922Z > Run with --info or --debug option to get more log output.
+build	Build APK	2026-11-20T20:04:35.7001706Z > Run with --scan to get full insights.
+build	Build APK	2026-11-20T20:04:35.7002450Z > Get more help at https://help.gradle.org.
+build	Build APK	2026-11-20T20:04:35.7002957Z 
+build	Build APK	2026-11-20T20:04:35.7003342Z BUILD FAILED in 21s
+build	Build APK	2026-11-20T20:04:39.4294112Z ##[error]Process completed with exit code 1.
