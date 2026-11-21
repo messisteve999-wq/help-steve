@@ -34,19 +34,19 @@ class ChatWindow(
     private val contactsBox = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
     private val homePane = ScrollView(ctx)
     private val convPane = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-    private val titleView = tv("", 15f, 0xFF00E5FF.toInt())
+    private val titleView = tv("", 17f, 0xFF00E5FF.toInt())
     private val modeBtn = btn("⚙ Mode") { toggleMode() }
     private val langBtn = btn("文 Langue") { cycleLanguage() }
     private val personaBtn = btn("✦ Style") { cyclePersona() }
     private val pendingRow = LinearLayout(ctx).apply { visibility = View.GONE }
-    private val pendingLabel = tv("", 12f, 0xFFFFD166.toInt())
+    private val pendingLabel = tv("", 15f, 0xFFFFD166.toInt())
     private val messagesBox = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-    private val suggestionLabel = tv("", 13f, 0xFFB26BFF.toInt())
+    private val suggestionLabel = tv("", 15f, 0xFFB26BFF.toInt())
     private val input = EditText(ctx).apply {
         hint = "Message..."
         setTextColor(Color.WHITE)
         setHintTextColor(0x88FFFFFF.toInt())
-        textSize = 14f
+        textSize = 16f
         background = GradientDrawable().apply {
             setColor(0xFF14233C.toInt())
             cornerRadius = 18f
@@ -211,13 +211,13 @@ class ChatWindow(
             background = bubbleBg(if (m.fromMe) 0x3300E5FF else 0x33B26BFF)
             layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, 4, 0, 0) }
         }
-        box.addView(tv("$who : ${m.text}", 13f).apply {
+        box.addView(tv("$who : ${m.text}", 15f).apply {
             setOnClickListener {
                 selectedId = if (selectedId == m.id) null else m.id
                 refreshConversation()
             }
         })
-        MessageStore.translations[m.id]?.let { box.addView(tv("🌐 $it", 12f, 0xFFB0FFD0.toInt())) }
+        MessageStore.translations[m.id]?.let { box.addView(tv("🌐 $it", 14f, 0xFFB0FFD0.toInt())) }
 
         val row = LinearLayout(ctx).apply { gravity = Gravity.END }
         row.addView(btn("🌐 Traduire") { translate(m) })
@@ -325,7 +325,7 @@ class ChatWindow(
     private fun btn(t: String, onClick: () -> Unit) = Button(ctx).apply {
         text = t
         contentDescription = t
-        textSize = 10f
+        textSize = 12f
         isAllCaps = false
         setTextColor(Color.WHITE)
         minWidth = 0
@@ -344,7 +344,7 @@ class ChatWindow(
 
         elevation = 3f
         layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, 34
+            LinearLayout.LayoutParams.WRAP_CONTENT, 36
         ).apply {
             setMargins(2, 2, 2, 2)
         }

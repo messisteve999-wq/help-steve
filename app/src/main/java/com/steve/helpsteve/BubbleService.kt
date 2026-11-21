@@ -42,8 +42,8 @@ class BubbleService : Service() {
         val metrics = resources.displayMetrics
 
         val chatParams = overlayParams(
-            (metrics.widthPixels * 0.82).toInt(),
-            (metrics.heightPixels * 0.60).toInt()
+            (metrics.widthPixels * 0.68).toInt(),
+            (metrics.heightPixels * 0.46).toInt()
         ).apply {
             gravity = Gravity.CENTER
         }
@@ -141,8 +141,8 @@ class BubbleService : Service() {
         }
 
         val imageParams = FrameLayout.LayoutParams(
-            50,
-            50,
+            62,
+            62,
             Gravity.CENTER
         )
 
@@ -174,7 +174,7 @@ class BubbleService : Service() {
 
         bubbleContainer.addView(sentBadge, badgeParams)
 
-        val lp = overlayParams(60, 60).apply {
+        val lp = overlayParams(72, 72).apply {
             gravity = Gravity.TOP or Gravity.START
             x = 0
             y = 300
