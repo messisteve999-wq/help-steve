@@ -4,49 +4,66 @@ import android.app.Notification
 import android.app.RemoteInput
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 
 object AutoReplyManager {
 
+    private const val TAG = "HELP_STEVE_REPLY"
+
+    /**
+     * Vérifie la présence d'une véritable action REPLY
+     * avec une saisie textuelle libre.
+     */
     fun hasCompatibleReplyAction(notification: Notification): Boolean {
         return findReplyAction(notification) != null
     }
 
+    /**
+     * Envoie uniquement via une action explicitement identifiée REPLY.
+     */
     fun sendReply(
         context: Context,
         notification: Notification,
         replyText: String
     ): Boolean {
+
         if (replyText.isBlank()) return false
 
         val action = findReplyAction(notification) ?: return false
-        val remoteInputs = action.remoteInputs ?: return false
 
-        val freeFormInputs = remoteInputs.filter {
-            it.allowFreeFormInput
-        }
-
-        if (freeFormInputs.isEmpty()) return false
+        val remoteInput = action.remoteInputs
+            ?.firstOrNull { it.allowFreeFormInput }
+            ?: return false
 
         return try {
-            val intent = Intent()
-            val results = Bundle()
+            val fillInIntent = Intent()
 
-            freeFormInputs.forEach { input ->
-                results.putCharSequence(input.resultKey, replyText)
+            val results = Bundle().apply {
+                putCharSequence(
+                    remoteInput.resultKey,
+                    replyText.trim()
+                )
             }
 
             RemoteInput.addResultsToIntent(
-                freeFormInputs.toTypedArray(),
-                intent,
+                arrayOf(remoteInput),
+                fillInIntent,
                 results
             )
 
-            action.actionIntent.send(context, 0, intent)
+            action.actionIntent.send(
+                context,
+                0,
+                fillInIntent
+            )
+
+            Log.d(TAG, "Action REPLY transmise à Android")
             true
+
         } catch (error: Exception) {
-            Log.e("HELP_STEVE_REPLY", "Échec de l'envoi RemoteInput", error)
+            Log.e(TAG, "Échec de l'action REPLY", error)
             false
         }
     }
@@ -54,12 +71,19 @@ object AutoReplyManager {
     private fun findReplyAction(
         notification: Notification
     ): Notification.Action? {
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return null
+        }
+
         val actions = notification.actions ?: return null
 
         return actions.firstOrNull { action ->
-            val inputs = action.remoteInputs
-            !inputs.isNullOrEmpty() &&
-                inputs.any { it.allowFreeFormInput }
+            action.semanticAction ==
+                Notification.Action.SEMANTIC_ACTION_REPLY &&
+                action.remoteInputs?.any {
+                    it.allowFreeFormInput
+                } == true
         }
     }
 }
