@@ -193,7 +193,7 @@ class ChatWindow(
         pendingId = p?.msg?.id
         if (p != null) {
             val secs = ((p.sendAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
-            pendingLabel.text = "⏳ Envoi dans ${secs}s : ${p.text}"
+            pendingLabel.text = "👁 APERÇU · Envoi dans ${secs}s\n${p.parts.joinToString("\n\n")}"
             pendingRow.visibility = View.VISIBLE
         } else {
             pendingRow.visibility = View.GONE
