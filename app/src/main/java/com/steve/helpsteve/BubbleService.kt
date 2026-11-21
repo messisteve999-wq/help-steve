@@ -87,7 +87,7 @@ class BubbleService : Service() {
             }
             elevation = 12f
         }
-        val lp = overlayParams(72, 72).apply {
+        val lp = overlayParams(50, 50).apply {
             gravity = Gravity.TOP or Gravity.START
             x = 0
             y = 300
