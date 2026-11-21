@@ -1,34 +1,59 @@
 package com.steve.helpsteve
 
 object AiEngine {
+
     fun replyParts(msg: IncomingMessage, avoid: String? = null): List<String> {
         val s = MessageStore.settingsFor(msg.app, msg.sender)
-        val history = MessageStore.history(msg.app, msg.sender).takeLast(20)
+
+        val history = MessageStore.history(msg.app, msg.sender)
+            .takeLast(20)
             .joinToString("\n") {
                 (if (it.fromMe) "Steve" else it.sender) + " : " + it.text
             }
 
         val prompt = buildString {
-            append("Historique de la conversation :\n")
+            append("HISTORIQUE DE LA CONVERSATION :\n")
             append(history)
             append("\n\n")
-            append("Réponds au dernier message reçu en respectant la personnalité.\n")
-            append("Génère entre 1 et 3 messages indépendants si cela améliore la conversation.\n")
-            append("Sépare les messages avec le marqueur exact [[MESSAGE]].\n")
-            append("Ne répète pas une question déjà posée.\n")
-            if (avoid != null) append("Évite cette réponse précédente : $avoid\n")
-            append("Dernier message reçu : ${msg.text}")
+
+            append("MESSAGE AUQUEL TU DOIS RÉPONDRE :\n")
+            append(msg.text)
+            append("\n\n")
+
+            append("INSTRUCTIONS :\n")
+            append("- Réponds directement à ce message.\n")
+            append("- Fais une réponse courte et naturelle.\n")
+            append("- Une ou deux phrases maximum si possible.\n")
+            append("- Pose une question uniquement si elle est pertinente.\n")
+            append("- Ne parle pas spontanément de Steve.\n")
+            append("- Ne répète pas une question déjà posée.\n")
+
+            if (avoid != null) {
+                append("- Évite cette réponse précédente : $avoid\n")
+            }
+
+            append("\nGénère uniquement la réponse à envoyer.")
         }
 
-        val raw = GeminiClient.ask(Prompts.system(s.personality, s.language), prompt)
-        if (raw.startsWith("Erreur")) return listOf(raw)
+        val raw = GeminiClient.ask(
+            Prompts.system(s.personality, s.language),
+            prompt
+        )
 
-        val parts = raw.split("[[MESSAGE]]")
-            .map { it.trim().trim('"', '“', '”') }
-            .filter { it.isNotBlank() }
-            .take(3)
+        if (raw.startsWith("Erreur")) {
+            return listOf(raw)
+        }
 
-        return parts.ifEmpty { listOf(raw.trim()) }
+        val response = raw.split("[[MESSAGE]]")
+            .firstOrNull { it.isNotBlank() }
+            ?.trim()
+            ?.trim('"', '“', '”', '\'')
+
+        return if (response.isNullOrBlank()) {
+            listOf("Je n'ai pas réussi à générer une réponse.")
+        } else {
+            listOf(response)
+        }
     }
 
     fun reply(msg: IncomingMessage, avoid: String? = null): String =

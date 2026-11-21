@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 object AutoReplier {
+
     class Pending(
         val msg: IncomingMessage,
         val parts: List<String>,
@@ -22,18 +23,34 @@ object AutoReplier {
     }
 
     val pending = LinkedHashMap<Long, Pending>()
+
     var onUpdate: (() -> Unit)? = null
     var onSent: ((IncomingMessage) -> Unit)? = null
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    private fun canAutoReply(msg: IncomingMessage): Boolean {
+        val settings = MessageStore.settingsFor(msg.app, msg.sender)
+
+        return settings.mode == Mode.AUTO &&
+            settings.personality.autoAllowed
+    }
 
     fun schedule(ctx: Context, msg: IncomingMessage) {
-        // Évite de programmer plusieurs réponses pour le même message.
+
         if (pending.containsKey(msg.id)) return
+        if (!canAutoReply(msg)) return
 
         scope.launch {
+
             val parts = withContext(Dispatchers.IO) {
-                AiEngine.replyParts(msg)
+                AiEngine.replyParts(msg).take(1)
+            }
+
+            if (!canAutoReply(msg)) {
+                onUpdate?.invoke()
+                return@launch
             }
 
             if (parts.isEmpty() || parts.any { it.startsWith("Erreur") }) {
@@ -44,26 +61,27 @@ object AutoReplier {
             val delayMs = Random.nextLong(30_000L, 90_001L)
 
             val job = scope.launch {
+
                 delay(delayMs)
 
-                // Vérifie que la réponse est toujours en attente.
-                if (!pending.containsKey(msg.id)) return@launch
-
-                var allSent = true
-                for ((index, part) in parts.withIndex()) {
-                    if (!pending.containsKey(msg.id)) return@launch
-
-                    if (!ReplySender.send(ctx, msg, part)) {
-                        allSent = false
-                        break
-                    }
-
-                    // Petite séparation entre les messages indépendants.
-                    if (index < parts.lastIndex) delay(1_200L)
+                if (!pending.containsKey(msg.id)) {
+                    return@launch
                 }
 
+                if (!canAutoReply(msg)) {
+                    pending.remove(msg.id)
+                    onUpdate?.invoke()
+                    return@launch
+                }
+
+                val sent = ReplySender.send(ctx, msg, parts.first())
+
                 pending.remove(msg.id)
-                if (allSent) onSent?.invoke(msg)
+
+                if (sent) {
+                    onSent?.invoke(msg)
+                }
+
                 onUpdate?.invoke()
             }
 
@@ -73,6 +91,7 @@ object AutoReplier {
                 System.currentTimeMillis() + delayMs,
                 job
             )
+
             onUpdate?.invoke()
         }
     }
