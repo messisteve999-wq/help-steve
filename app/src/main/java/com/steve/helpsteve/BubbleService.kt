@@ -28,6 +28,7 @@ class BubbleService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        GeminiClient.initialize(applicationContext)
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         startAsForeground()
 
