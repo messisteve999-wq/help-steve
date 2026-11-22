@@ -11,8 +11,8 @@ android {
         applicationId = "com.steve.helpsteve"
         minSdk = 26
         targetSdk = 34
-        versionCode = 28
-        versionName = "3.8"
+        versionCode = 29
+        versionName = "4.2"
     }
 
     buildTypes {

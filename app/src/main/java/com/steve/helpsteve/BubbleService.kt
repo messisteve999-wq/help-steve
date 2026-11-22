@@ -41,11 +41,21 @@ class BubbleService : Service() {
 
         val metrics = resources.displayMetrics
 
-        val chatParams = overlayParams(
-            (metrics.widthPixels * 0.68).toInt(),
-            (metrics.heightPixels * 0.46).toInt()
-        ).apply {
-            gravity = Gravity.CENTER
+        val chatWidth = (metrics.widthPixels * 0.68).toInt()
+        val chatHeight = (metrics.heightPixels * 0.46).toInt()
+
+        val windowPrefs = getSharedPreferences(
+            "help_steve_window", Context.MODE_PRIVATE
+        )
+
+        val chatParams = overlayParams(chatWidth, chatHeight).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = windowPrefs.getInt(
+                "x", (metrics.widthPixels - chatWidth) / 2
+            ).coerceIn(0, (metrics.widthPixels - chatWidth).coerceAtLeast(0))
+            y = windowPrefs.getInt(
+                "y", (metrics.heightPixels - chatHeight) / 2
+            ).coerceIn(0, (metrics.heightPixels - chatHeight).coerceAtLeast(0))
         }
 
         chatRoot = FrameLayout(this).apply {

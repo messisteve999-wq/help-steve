@@ -1,7 +1,7 @@
 package com.steve.helpsteve
 
 object AppInfo {
-    private val known = mapOf(
+    private val known = linkedMapOf(
         "com.whatsapp" to "WhatsApp",
         "com.whatsapp.w4b" to "WhatsApp Business",
         "com.facebook.orca" to "Messenger",
@@ -17,5 +17,9 @@ object AppInfo {
     )
 
     fun isMessaging(pkg: String) = known.containsKey(pkg)
+
     fun name(pkg: String) = known[pkg] ?: pkg
+
+    fun supportedApps(): List<Pair<String, String>> =
+        known.entries.map { it.key to it.value }
 }

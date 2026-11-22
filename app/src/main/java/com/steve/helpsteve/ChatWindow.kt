@@ -6,6 +6,8 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
+import android.view.MotionEvent
+import android.text.TextUtils
 import android.view.View
 import android.view.WindowManager
 import android.widget.*
@@ -34,7 +36,10 @@ class ChatWindow(
     private val contactsBox = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
     private val homePane = ScrollView(ctx)
     private val convPane = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-    private val titleView = tv("", 17f, 0xFF00E5FF.toInt())
+    private val titleView = tv("", 17f, 0xFF00E5FF.toInt()).apply {
+        maxLines = 1
+        ellipsize = TextUtils.TruncateAt.END
+    }
     private val modeBtn = btn("⚙ Mode") { toggleMode() }
     private val langBtn = btn("文 Langue") { cycleLanguage() }
     private val personaBtn = btn("✦ Style") { cyclePersona() }
@@ -69,7 +74,11 @@ class ChatWindow(
             }
         }
 
-        column.addView(HorizontalScrollView(ctx).apply { addView(appRow) })
+        column.addView(createDragHandle())
+
+        column.addView(HorizontalScrollView(ctx).apply {
+            addView(appRow)
+        })
         homePane.addView(contactsBox)
         column.addView(homePane, LinearLayout.LayoutParams(-1, 0, 1f))
 
@@ -129,6 +138,77 @@ class ChatWindow(
         refresh()
     }
 
+    private fun shortContactName(name: String): String {
+        val limit = 18
+        return if (name.length > limit) {
+            name.take(limit - 1).trimEnd() + "…"
+        } else name
+    }
+
+    private fun createDragHandle(): TextView {
+        val prefs = ctx.getSharedPreferences(
+            "help_steve_window", Context.MODE_PRIVATE
+        )
+
+        var startX = 0
+        var startY = 0
+        var touchX = 0f
+        var touchY = 0f
+
+        return TextView(ctx).apply {
+            text = "☰  DÉPLACER LA FENÊTRE"
+            gravity = Gravity.CENTER
+            textSize = 12f
+            setTextColor(0xFF00E5FF.toInt())
+            setPadding(8, 10, 8, 10)
+            background = GradientDrawable().apply {
+                setColor(0xFF142B48.toInt())
+                cornerRadius = 14f
+                setStroke(1, 0xFF00DFFF.toInt())
+            }
+            contentDescription = "Maintenir et déplacer la fenêtre IA"
+
+            setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startX = params.x
+                        startY = params.y
+                        touchX = event.rawX
+                        touchY = event.rawY
+                        true
+                    }
+
+                    MotionEvent.ACTION_MOVE -> {
+                        val metrics = ctx.resources.displayMetrics
+                        val maxX = (metrics.widthPixels - params.width)
+                            .coerceAtLeast(0)
+                        val maxY = (metrics.heightPixels - params.height)
+                            .coerceAtLeast(0)
+
+                        params.x = (startX + event.rawX - touchX)
+                            .toInt().coerceIn(0, maxX)
+                        params.y = (startY + event.rawY - touchY)
+                            .toInt().coerceIn(0, maxY)
+
+                        wm.updateViewLayout(root, params)
+                        true
+                    }
+
+                    MotionEvent.ACTION_UP,
+                    MotionEvent.ACTION_CANCEL -> {
+                        prefs.edit()
+                            .putInt("x", params.x)
+                            .putInt("y", params.y)
+                            .apply()
+                        true
+                    }
+
+                    else -> true
+                }
+            }
+        }
+    }
+
     private fun refresh() {
         if (homePane.visibility == View.VISIBLE) refreshHome() else refreshConversation()
     }
@@ -180,7 +260,7 @@ class ChatWindow(
         val a = app ?: return
         val c = sender ?: return
         val s = settings()
-        titleView.text = "$c · $a"
+        titleView.text = "${shortContactName(c)} · $a"
         modeBtn.text = if (s.mode == Mode.AUTO) "⚡ AUTO" else "⚙ Suggestions"
         modeBtn.contentDescription = if (s.mode == Mode.AUTO) "Mode automatique" else "Mode suggestions"
         langBtn.text = "文 ${s.language.label}"

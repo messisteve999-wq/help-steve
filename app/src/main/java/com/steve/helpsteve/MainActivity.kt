@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         header.addView(label("HELP-STEVE", 25f, cyan, true))
-        header.addView(label("V3.1  •  ASSISTANT INTELLIGENT", 10f, muted, true))
+        header.addView(label("V4.2  •  ASSISTANT INTELLIGENT", 10f, muted, true))
         statusLine = label("", 12f, Color.WHITE)
         statusLine.setPadding(0, dp(12), 0, 0)
         header.addView(statusLine)
@@ -96,6 +96,7 @@ class MainActivity : AppCompatActivity() {
             "chats" -> chatsPage(content)
             "ai" -> aiPage(content)
             "server" -> serverPage(content)
+            "apps" -> appsPage(content)
         }
     }
 
@@ -121,6 +122,9 @@ class MainActivity : AppCompatActivity() {
         infoCard(box, "Fenêtre flottante", if (Settings.canDrawOverlays(this)) "Autorisation accordée" else "Autorisation requise")
         infoCard(box, "Notifications", "Accès à vérifier dans les paramètres Android")
         action(box, "CONFIGURER LE SERVEUR", violet) { showPage("server") }
+        action(box, "APPLICATIONS À SYNCHRONISER", cyan) {
+            showPage("apps")
+        }
     }
 
     private fun chatsPage(box: LinearLayout) {
@@ -162,6 +166,46 @@ class MainActivity : AppCompatActivity() {
         infoCard(box, "Personnalité et langue", "Les préférences par contact se règlent dans la conversation flottante.")
         infoCard(box, "Traduction", "Utilisez l'action de traduction dans la fenêtre de discussion.")
         action(box, "OUVRIR L'ASSISTANT FLOTTANT", cyan) { startBubble() }
+    }
+
+    private fun appsPage(box: LinearLayout) {
+        box.addView(label("Applications synchronisées", 22f, Color.WHITE, true))
+        box.addView(label(
+            "Coche uniquement les applications dont tu souhaites recevoir les notifications dans HELP-STEVE.",
+            12f, muted
+        ))
+        space(box, 14)
+
+        val panelView = card(box)
+
+        val apps = AppInfo.supportedApps()
+
+        apps.forEach { (pkg, name) ->
+            val check = CheckBox(this).apply {
+                text = name
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                buttonTintList = android.content.res.ColorStateList.valueOf(cyan)
+                isChecked = AppSyncSettings.isEnabled(this@MainActivity, pkg)
+
+                setOnCheckedChangeListener { _, checked ->
+                    AppSyncSettings.setEnabled(
+                        this@MainActivity, pkg, checked
+                    )
+                }
+            }
+
+            panelView.addView(check, LinearLayout.LayoutParams(
+                -1, dp(48)
+            ))
+        }
+
+        space(box, 8)
+        infoCard(
+            box,
+            "Synchronisation",
+            "Les choix sont enregistrés automatiquement et conservés après redémarrage. Les nouvelles notifications des applications désactivées ne seront plus importées."
+        )
     }
 
     private fun serverPage(box: LinearLayout) {
@@ -206,6 +250,9 @@ class MainActivity : AppCompatActivity() {
         }
         infoCard(box, "État du jeton", if (SecureTokenStore.isConfigured(this)) "Jeton enregistré sur cet appareil" else "Aucun jeton enregistré")
         infoCard(box, "Protection", "Le jeton est chiffré sur l'appareil avec Android Keystore.")
+        action(box, "CHOISIR LES APPLICATIONS", cyan) {
+            showPage("apps")
+        }
         action(box, "AUTORISATION FENÊTRE FLOTTANTE", cyan) { requestOverlay() }
         action(box, "ACCÈS AUX NOTIFICATIONS", violet) {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
